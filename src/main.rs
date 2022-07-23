@@ -9,6 +9,7 @@ use std::{
     io::{self, Read},
 };
 use structopt::StructOpt; // 1.2.7
+use regex::Regex;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -28,6 +29,7 @@ struct Star {
 
 impl Star {
     fn from_reader(mut rdr: impl Read) -> io::Result<Self> {
+        let typestr_regex = Regex::new(r"^(P([0-9][0-9])|(S((0[0-9])|(1[0-1]))))$").unwrap();
         let x = rdr.read_i32::<LittleEndian>()?;
         let y = rdr.read_i32::<LittleEndian>()?;
         let z = rdr.read_i32::<LittleEndian>()?;
@@ -48,7 +50,7 @@ impl Star {
         let name: AsciiString;
         match name_r {
             Ok(str) => {
-                name = str;
+                name = AsciiString::from(str.trim());
             },
             Err(_) => {
                 return Err(Error::new(ErrorKind::Other, "name not ascii!?"))
@@ -56,11 +58,15 @@ impl Star {
         }
         match typestr_r {
             Ok(str) => {
-                typestr = str;
+                typestr = AsciiString::from(str.trim());
             },
             Err(_) => {
                 return Err(Error::new(ErrorKind::Other, format!("typestr not ascii!? (entity name: {})", name)))
             }
+        }
+
+        if !typestr_regex.is_match(typestr.as_str()) {
+            return Err(Error::new(ErrorKind::Other, format!("invalid typestr (typestr: {})", typestr)))
         }
 
         Ok(Star {
