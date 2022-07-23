@@ -20,6 +20,7 @@ struct Cli {
     path: std::path::PathBuf,
 }
 
+// NOTE: actually a struct for *objects*, i.e. stars (if typestr starts with S) or planets (if typestr starts with P)
 struct Star {
     x: i32,
     y: i32,
@@ -107,7 +108,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Star/Planet: [{}] {} {} {} {} {} {}",
                     i, star.x, star.y, star.z, star.name, star.index, star.typestr
                 );
-                stars.push(star);
+                if star.typestr[0] == 'S' {
+                    stars.push(star);
+                }
             }
             Err(error) => {
                 // malformed entry OR EOF
@@ -121,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let (mut rl, thread) = raylib::init()
-    .size(640, 480)
+    .size(1600, 900)
     .title("Starmap2 viewer")
     .build();
 
@@ -148,8 +151,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             mode_3d.draw_grid(10, 1.0);
             for s in &stars {
-                //mode_3d.draw_point3D(s, Color::BLACK);
-                mode_3d.draw_circle_3D(s, 0.01, up_vec, 0.0, Color::BLACK)
+                //mode_3d.draw_point3D(s, Color::BLACK); // note: displays ugly as a line... :(
+                mode_3d.draw_circle_3D(s, 0.005, up_vec, 0.0, Color::BLACK)
             }
         }
  
