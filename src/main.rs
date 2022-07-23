@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static;
 extern crate byteorder;
 
 use ascii::AsciiString;
@@ -27,9 +29,12 @@ struct Star {
     typestr: AsciiString,
 }
 
+lazy_static! {
+    static ref TYPESTR_REGEX: Regex = Regex::new(r"^(P([0-9][0-9])|(S((0[0-9])|(1[0-1]))))$").unwrap();
+}
+
 impl Star {
     fn from_reader(mut rdr: impl Read) -> io::Result<Self> {
-        let typestr_regex = Regex::new(r"^(P([0-9][0-9])|(S((0[0-9])|(1[0-1]))))$").unwrap();
         let x = rdr.read_i32::<LittleEndian>()?;
         let y = rdr.read_i32::<LittleEndian>()?;
         let z = rdr.read_i32::<LittleEndian>()?;
@@ -65,7 +70,7 @@ impl Star {
             }
         }
 
-        if !typestr_regex.is_match(typestr.as_str()) {
+        if !TYPESTR_REGEX.is_match(typestr.as_str()) {
             return Err(Error::new(ErrorKind::Other, format!("invalid typestr (typestr: {})", typestr)))
         }
 
