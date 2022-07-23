@@ -2,6 +2,7 @@ extern crate byteorder;
 
 use ascii::AsciiString;
 use byteorder::{LittleEndian, ReadBytesExt};
+use std::io::{Error, ErrorKind};
 use std::str;
 use std::{
     fs::File,
@@ -40,8 +41,27 @@ impl Star {
         for i in 0..4 {
             _typestr[i] = rdr.read_u8()?;
         }
-        let name = AsciiString::from_ascii(_name).unwrap();
-        let typestr = AsciiString::from_ascii(_typestr).unwrap();
+        let name_r = AsciiString::from_ascii(_name);
+        let typestr_r = AsciiString::from_ascii(_typestr);
+        
+        let typestr: AsciiString;
+        let name: AsciiString;
+        match name_r {
+            Ok(str) => {
+                name = str;
+            },
+            Err(_) => {
+                return Err(Error::new(ErrorKind::Other, "name not ascii!?"))
+            }
+        }
+        match typestr_r {
+            Ok(str) => {
+                typestr = str;
+            },
+            Err(_) => {
+                return Err(Error::new(ErrorKind::Other, format!("typestr not ascii!? (entity name: {})", name)))
+            }
+        }
 
         Ok(Star {
             x,
@@ -59,19 +79,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
     let file = File::open(&args.path).unwrap();
 
+    let mut i = 0;
     loop {
         let star = Star::from_reader(&file);
+        i = i + 1;
         match star {
             Ok(star) => {
                 println!(
-                    "Star/Planet: {} {} {} {} {} {}",
-                    star.x, star.y, star.z, star.name, star.index, star.typestr
+                    "Star/Planet: [{}] {} {} {} {} {} {}",
+                    i, star.x, star.y, star.z, star.name, star.index, star.typestr
                 );
             }
             Err(error) => {
-                return Err(error.into());
+                // malformed entry OR EOF
+                // exit if EOF, ignore otherwise
+                if error.kind() == ErrorKind::UnexpectedEof {
+                    return Ok(());
+                }
+                eprintln!("Malformed entry at [{}]; {}", i, error.to_string());
             }
         };
     }
-    return Ok(());
 }
